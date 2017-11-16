@@ -15,29 +15,24 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
-
 #include <string>
-#include <Windows.h>
+#include <map>
+#include <memory>
 #include "CppCoverageExport.hpp"
 
 namespace CppCoverage
 {
-	class SourceCodeLocation;
-    class Address;
-    
-    class CPPCOVERAGE_DLL IDebugInformationEventHandler
+    class LineConverage;
+	class CPPCOVERAGE_DLL MethodCoverage
 	{
 	public:
-		IDebugInformationEventHandler() = default;
-		virtual ~IDebugInformationEventHandler() = default;
-        virtual void OnNewFile(const std::wstring &fileName) = 0;
-        virtual void OnNewClass(const std::wstring &className) = 0;
-        virtual void OnNewFunction(const std::wstring &fileName, const std::wstring &className, const std::wstring &functionName) = 0;
-		virtual void OnNewLine(const SourceCodeLocation &) = 0;
-        virtual void OnNewConditional(const SourceCodeLocation&, const Address &branchAddress) = 0;
+		MethodCoverage(const std::wstring &name);
+		MethodCoverage(const MethodCoverage&) = default;
+		
+		std::wstring GetMethodName() const;
+		
 	private:
-		IDebugInformationEventHandler(const IDebugInformationEventHandler&) = delete;
-		IDebugInformationEventHandler& operator=(const IDebugInformationEventHandler&) = delete;
+		std::wstring methodName_;
 	};
 }
 

@@ -34,9 +34,11 @@
 #include "ExceptionHandler.hpp"
 #include "CppCoverageException.hpp"
 #include "Address.hpp"
+#include "SourceCodeLocation.hpp"
 #include "RunCoverageSettings.hpp"
-
+#include "zydis_wrapper.h"
 #include "tools/Tool.hpp"
+#include <iostream>
 
 namespace CppCoverage
 {			
@@ -46,11 +48,13 @@ namespace CppCoverage
 		executedAddressManager_.reset(new ExecutedAddressManager());
 		exceptionHandler_.reset(new ExceptionHandler());
 		breakpoint_.reset(new BreakPoint());
+        Zydis::GlobalInitialize();
 	}
 	
 	//-------------------------------------------------------------------------
 	CodeCoverageRunner::~CodeCoverageRunner()
 	{
+        Zydis::GlobalFinalize();
 	}
 
 	//-------------------------------------------------------------------------
@@ -122,7 +126,7 @@ namespace CppCoverage
 		std::wostringstream ostr;
 		
 		auto status = exceptionHandler_->HandleException(hProcess, exceptionDebugInfo, ostr);
-
+        
 		switch (status)
 		{
 			case CppCoverage::ExceptionHandlerStatus::BreakPoint:
@@ -189,22 +193,32 @@ namespace CppCoverage
 				THROW("Cannot find debug information.");
 			const auto& debugInformation = it->second;
 
-			debugInformation->LoadModule(filename, hFile, baseOfImage, *coverageFilterManager_, *this);
+			auto moduleInfo = debugInformation->LoadModule(filename, hFile, baseOfImage, *coverageFilterManager_, *this);
+            exceptionHandler_->AddModule(moduleInfo);
 		}
 	}
 	
-	//-------------------------------------------------------------------------
-	void CodeCoverageRunner::OnNewLine(
-		const std::wstring& filename, 
-		int lineNumber, 
-		const Address& address)
-	{		
-		auto oldInstruction = breakpoint_->SetBreakPointAt(address);
+    //-------------------------------------------------------------------------
+    void CodeCoverageRunner::OnNewFile(const std::wstring &fileName)
+    {}
+    void CodeCoverageRunner::OnNewClass(const std::wstring &className)
+    {}
+    void CodeCoverageRunner::OnNewFunction(const std::wstring &fileName, const std::wstring &className, const std::wstring &functionName)
+    {}
+    void CodeCoverageRunner::OnNewLine(const SourceCodeLocation &location)
+    {
+        auto oldInstruction = breakpoint_->SetBreakPointAt(location.address_);
 
-		if (!executedAddressManager_->RegisterAddress(address, filename, lineNumber, oldInstruction))
-			breakpoint_->RemoveBreakPoint(address, oldInstruction);
-	}
-
+        if (!executedAddressManager_->RegisterAddress(location, oldInstruction))
+            breakpoint_->RemoveBreakPoint(location.address_, oldInstruction);
+    }
+    void CodeCoverageRunner::OnNewConditional(const SourceCodeLocation& location, const Address &branchAddress)
+    {
+        auto oldInstruction = breakpoint_->SetBreakPointAt(branchAddress);
+        if (!executedAddressManager_->RegisterBranchAddress(location, branchAddress, oldInstruction))
+            breakpoint_->RemoveBreakPoint(branchAddress, oldInstruction);
+    }
+	
 	//-------------------------------------------------------------------------
 	size_t CodeCoverageRunner::GetDebugInformationCount() const
 	{

@@ -14,33 +14,27 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
-#include <vector>
-#include <memory>
+#include "stdafx.h"
 #include "BranchCoverage.hpp"
-#include "CppCoverageExport.hpp"
 
 namespace CppCoverage
 {
-	class CPPCOVERAGE_DLL LineCoverage
+	//-------------------------------------------------------------------------
+	BranchCoverage::BranchCoverage(unsigned int branchNumber, bool hasBeenExecuted)
+		: branchNumber_(branchNumber)
+		, hasBeenExecuted_(hasBeenExecuted)
 	{
-	public:
-        typedef std::vector<BranchCoverage> T_BranchCoverageCollection;
-
-		LineCoverage(unsigned int lineNumber, bool hasBeenExecuted);
-		LineCoverage(const LineCoverage&) = default;
+	}
 		
-		unsigned int GetLineNumber() const;
-		bool HasBeenExecuted() const;
+	//-------------------------------------------------------------------------
+	unsigned int BranchCoverage::GetBranchNumber() const
+	{
+		return branchNumber_;
+	}
 
-        BranchCoverage& AddBranch(const unsigned int branchNumber, bool hasBeenExcuted);
-        const T_BranchCoverageCollection & GetBranches() const;
-		
-	private:
-		unsigned int lineNumber_;
-		bool hasBeenExecuted_;
-        T_BranchCoverageCollection branches_;
-	};
+	//-------------------------------------------------------------------------
+	bool BranchCoverage::HasBeenExecuted() const
+	{
+		return hasBeenExecuted_;
+	}
 }
-
-

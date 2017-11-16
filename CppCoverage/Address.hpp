@@ -33,8 +33,7 @@ namespace CppCoverage
 		bool operator<(const Address& other) const;
 		friend std::wostream& operator<<(std::wostream&, const Address&);
 
-	private:		
-		Address& operator=(const Address&) = delete;
+		Address& operator=(const Address&) = default;
 
 	private:
 		HANDLE hProcess_;

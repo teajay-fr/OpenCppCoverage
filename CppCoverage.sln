@@ -50,6 +50,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ToolsTest", "ToolsTest\Tool
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestCoverageOptimizedBuild", "TestCoverageOptimizedBuild\TestCoverageOptimizedBuild.vcxproj", "{2FD17BA1-0E02-49E6-84C3-0A8F63FEF871}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zydis_wrapper", "zydis_wrapper\zydis_wrapper.vcxproj", "{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -268,6 +270,20 @@ Global
 		{2FD17BA1-0E02-49E6-84C3-0A8F63FEF871}.Release|Win32.Build.0 = Release|Win32
 		{2FD17BA1-0E02-49E6-84C3-0A8F63FEF871}.Release|x64.ActiveCfg = Release|x64
 		{2FD17BA1-0E02-49E6-84C3-0A8F63FEF871}.Release|x64.Build.0 = Release|x64
+		{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}.Debug|Win32.Build.0 = Debug|Win32
+		{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}.Debug|x64.ActiveCfg = Debug|x64
+		{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}.Debug|x64.Build.0 = Debug|x64
+		{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}.Release|Any CPU.ActiveCfg = Release|Win32
+		{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}.Release|Win32.ActiveCfg = Release|Win32
+		{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}.Release|Win32.Build.0 = Release|Win32
+		{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}.Release|x64.ActiveCfg = Release|x64
+		{3B2C1EE1-FDEC-4D85-BE46-3C6A5EA69883}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

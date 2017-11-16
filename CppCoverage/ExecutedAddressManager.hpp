@@ -20,6 +20,7 @@
 
 #include <Windows.h>
 #include <map>
+#include <list>
 #include <set>
 #include <boost/optional.hpp>
 
@@ -29,7 +30,8 @@
 namespace CppCoverage
 {
 	class FileCoverage;
-	class Address;
+	class SourceCodeLocation;
+    class Address;
 
 	class CPPCOVERAGE_DLL ExecutedAddressManager
 	{
@@ -41,10 +43,13 @@ namespace CppCoverage
 		void OnUnloadModule(HANDLE hProcess, void* dllBaseOfImage);
 
 		bool RegisterAddress(
-			const Address&,
-			const std::wstring& filename,
-			unsigned int line,
+			const SourceCodeLocation&,
 			unsigned char instruction);
+
+        bool RegisterBranchAddress(            
+            const SourceCodeLocation&,
+            const Address &branchAddress,
+            unsigned char instruction);
 
 		boost::optional<unsigned char> MarkAddressAsExecuted(const Address&);
 
@@ -54,7 +59,8 @@ namespace CppCoverage
 	private:
 		struct Module;
 		struct File;
-		struct File;
+        struct Class;
+        struct Method;
 		struct Line;
 		struct LastModule
 		{
@@ -70,7 +76,7 @@ namespace CppCoverage
 		void RemoveAddressLineIf(F fct);
 
 		std::map<std::wstring, Module> modules_;
-		std::map<Address, Line> addressLineMap_;
+		std::map<Address, Line> addressLineMap_;        
 		LastModule lastModule_;
 	};
 }

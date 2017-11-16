@@ -22,12 +22,13 @@
     <ProjectGuid>{A50DD5A6-E85A-4E0B-9CC6-90D32503CE62}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>CppCoverage</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -39,7 +40,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -89,11 +90,14 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;CPPCOVERAGE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\Program Files %28x86%29\Microsoft Visual Studio 14.0\DIA SDK\include;C:\Users\thomas.bernard\Documents\development\OpenCppCoverage\zydis_wrapper;C:\Users\thomas.bernard\Documents\development\OpenCppCoverage\zydis_wrapper\zydis\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -151,6 +155,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Address.hpp" />
+    <ClInclude Include="BranchCoverage.hpp" />
     <ClInclude Include="BreakPoint.hpp" />
     <ClInclude Include="CodeCoverageRunner.hpp" />
     <ClInclude Include="CoverageData.hpp" />
@@ -158,7 +163,9 @@
     <ClInclude Include="CoverageFilterManager.hpp" />
     <ClInclude Include="FileDebugInformation.hpp" />
     <ClInclude Include="ICoverageFilterManager.hpp" />
+    <ClInclude Include="MethodCoverage.hpp" />
     <ClInclude Include="RunCoverageSettings.hpp" />
+    <ClInclude Include="SourceCodeLocation.hpp" />
     <ClInclude Include="UnifiedDiffCoverageFilterManager.hpp" />
     <ClInclude Include="UnifiedDiffSettings.hpp" />
     <ClInclude Include="WildcardCoverageFilter.hpp" />
@@ -190,13 +197,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Address.cpp" />
+    <ClCompile Include="BranchCoverage.cpp" />
     <ClCompile Include="BreakPoint.cpp" />
     <ClCompile Include="CodeCoverageRunner.cpp" />
     <ClCompile Include="CoverageData.cpp" />
     <ClCompile Include="CoverageDataMerger.cpp" />
     <ClCompile Include="CoverageFilterManager.cpp" />
     <ClCompile Include="FileDebugInformation.cpp" />
+    <ClCompile Include="MethodCoverage.cpp" />
     <ClCompile Include="RunCoverageSettings.cpp" />
+    <ClCompile Include="SourceCodeLocation.cpp" />
     <ClCompile Include="UnifiedDiffCoverageFilterManager.cpp" />
     <ClCompile Include="UnifiedDiffSettings.cpp" />
     <ClCompile Include="WildcardCoverageFilter.cpp" />
@@ -235,6 +245,9 @@
     </ProjectReference>
     <ProjectReference Include="..\Tools\Tools.vcxproj">
       <Project>{7f6d05ef-deb0-4c64-bd13-a85f46314b91}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\zydis_wrapper\zydis_wrapper.vcxproj">
+      <Project>{3b2c1ee1-fdec-4d85-be46-3c6a5ea69883}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

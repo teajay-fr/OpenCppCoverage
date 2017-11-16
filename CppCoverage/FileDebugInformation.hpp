@@ -18,6 +18,9 @@
 
 #include "CppCoverageExport.hpp"
 #include <Windows.h>
+#include "Tools/DbgHelp.hpp"
+#include <boost/flyweight.hpp>
+#include <set>
 
 namespace FileFilter
 {
@@ -34,14 +37,21 @@ namespace CppCoverage
 	public:	
 		FileDebugInformation() = default;
 
-		void LoadFile(
+	/*	void LoadFile(
 			const FileFilter::ModuleInfo&,
 			const std::wstring& filename,
 			ICoverageFilterManager& coverageFilterManager,
-			IDebugInformationEventHandler& debugInformationEventHandler) const;
-
+			IDebugInformationEventHandler& debugInformationEventHandler) const;*/
+        void LoadFunction(const FileFilter::ModuleInfo&,
+            const std::wstring &filename,
+            PSYMBOL_INFO symbol,
+            PIMAGEHLP_LINE64 sourceLineInfo,
+            ICoverageFilterManager& coverageFilterManager,
+            IDebugInformationEventHandler& debugInformationEventHandler);
 	private:
 		FileDebugInformation(const FileDebugInformation&) = delete;
-		FileDebugInformation& operator=(const FileDebugInformation&) = delete;
+		FileDebugInformation& operator=(const FileDebugInformation&) = delete;        
+        std::set<boost::flyweight<std::wstring>> knownFiles;
+        std::set<boost::flyweight<std::wstring>> knownScopes;
 	};
 }

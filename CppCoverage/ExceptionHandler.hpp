@@ -22,6 +22,7 @@
 #include <map>
 
 #include "CppCoverageExport.hpp"
+#include "FileFilter/ModuleInfo.hpp"
 
 namespace CppCoverage
 {	
@@ -44,7 +45,7 @@ namespace CppCoverage
 		static const int CppExceptionErrorCode;
 
 		ExceptionHandler();
-
+        void AddModule(const FileFilter::ModuleInfo &moduleInfo);
 		ExceptionHandlerStatus HandleException(HANDLE hProcess, const EXCEPTION_DEBUG_INFO&, std::wostream&);
 		void OnExitProcess(HANDLE hProcess);
 
@@ -54,7 +55,7 @@ namespace CppCoverage
 
 		void InitExceptionCode();
 		std::wstring GetExceptionStrFromCode(DWORD) const;
-
+        std::list<FileFilter::ModuleInfo> loadedModules_;
 		std::unordered_map<DWORD, std::wstring> exceptionCode_;
 		std::map<DWORD, std::vector<HANDLE>> breakPointExceptionCode_;
 	};

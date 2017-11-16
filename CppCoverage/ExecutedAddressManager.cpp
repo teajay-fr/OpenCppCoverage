@@ -26,29 +26,46 @@
 #include "ModuleCoverage.hpp"
 #include "FileCoverage.hpp"
 #include "Address.hpp"
-
+#include "SourceCodeLocation.hpp"
+#include <iostream>
 namespace CppCoverage
 {
-	//-------------------------------------------------------------------------
-	struct ExecutedAddressManager::Line
-	{
-		explicit Line(unsigned char instructionToRestore, void* dllBaseOfImage)
-			: instructionToRestore_{ instructionToRestore }
-			, dllBaseOfImage_{ dllBaseOfImage }
-		{
-		}
+    //-------------------------------------------------------------------------
+    struct ExecutedAddressManager::Line
+    {
+        explicit Line(unsigned char instructionToRestore, void* dllBaseOfImage)
+            : instructionToRestore_{ instructionToRestore }
+            , dllBaseOfImage_{ dllBaseOfImage }
+        {
+        }
 
-		const unsigned char instructionToRestore_;
-		void* const dllBaseOfImage_;
-		boost::container::small_vector<bool*, 1> hasBeenExecutedCollection_;
-	};
+        const unsigned char instructionToRestore_;
+        void* const dllBaseOfImage_;
+        boost::container::small_vector<bool*, 1> hasBeenExecutedCollection_;
+    };
 
-	//-------------------------------------------------------------------------
-	struct ExecutedAddressManager::File
-	{		
-		// Use map to have iterator always valid
-		std::map<unsigned int, bool> lines;
-	};
+    //-------------------------------------------------------------------------
+    struct ExecutedAddressManager::Method
+    {
+        typedef std::list<bool> ConditionalsContainer;
+        std::map<unsigned int, ConditionalsContainer> lines_;
+//        std::unordered_map<unsigned int, ExecutedAddressManager::Line> methods_;
+    };
+
+    //-------------------------------------------------------------------------
+    struct ExecutedAddressManager::Class
+    {
+        std::unordered_map<boost::flyweight<std::wstring>, ExecutedAddressManager::Method> methods_;
+    };
+
+    //-------------------------------------------------------------------------
+    struct ExecutedAddressManager::File
+    {
+        const boost::flyweight<std::wstring> name_;
+        // Use map to have iterator always valid
+        std::map<unsigned int, bool> lines_;
+        std::unordered_map<boost::flyweight<std::wstring>, Class> classes_;
+    };
 
 	//-------------------------------------------------------------------------
 	struct ExecutedAddressManager::Module
@@ -58,7 +75,7 @@ namespace CppCoverage
 		}
 
 		const std::wstring name_;
-		std::unordered_map<std::wstring, File> files_;
+		std::unordered_map<boost::flyweight<std::wstring>, File> files_;
 	};
 	
 	//-------------------------------------------------------------------------
@@ -88,34 +105,62 @@ namespace CppCoverage
 	
 	//-------------------------------------------------------------------------
 	bool ExecutedAddressManager::RegisterAddress(
-		const Address& address,
-		const std::wstring& filename,
-		unsigned int lineNumber, 
+		const SourceCodeLocation& location,
 		unsigned char instructionValue)
 	{
 		auto& module = GetLastAddedModule();
-		auto& file = module.files_[filename];
-
-		LOG_TRACE << "RegisterAddress: " << address << " for " << filename << ":" << lineNumber;
-
+		auto& file = module.files_[location.fileName_];
+        auto& classContext = file.classes_[location.className_];
+        auto& function = classContext.methods_[location.functionName_];
+        auto& currentLine = file.lines_[location.lineNumber_];
+        function.lines_.emplace(std::make_pair(location.lineNumber_, ExecutedAddressManager::Method::ConditionalsContainer{}));
+		LOG_TRACE << "RegisterAddress: " << location.address_ << " for " << location.fileName_ << ":" << location.lineNumber_;
 		// Different {filename, line} can have the same address.
 		// Same {filename, line} can have several addresses.		
 		bool keepBreakpoint = false;
-		auto itAddress = addressLineMap_.find(address);
+		auto itAddress = addressLineMap_.find(location.address_);
 
 		if (itAddress == addressLineMap_.end())
 		{
-			itAddress = addressLineMap_.emplace(address, 
-				Line{ instructionValue, lastModule_.baseOfImage_ }).first;
+			itAddress = addressLineMap_.emplace(location.address_, Line{ instructionValue, lastModule_.baseOfImage_ }).first;
 			keepBreakpoint = true;
 		}
 		
 		auto& line = itAddress->second;
-		line.hasBeenExecutedCollection_.push_back(&file.lines[lineNumber]);
-		
-		return keepBreakpoint;
+		line.hasBeenExecutedCollection_.push_back(&currentLine);
+        return keepBreakpoint;
 	}
+    bool ExecutedAddressManager::RegisterBranchAddress(        
+        const SourceCodeLocation& location,
+        const Address &lineAddress,
+        unsigned char instructionValue)
+    {
+        auto& module = GetLastAddedModule();
+        auto& file = module.files_[location.fileName_];
+        auto& classContext = file.classes_[location.className_];
+        auto& function = classContext.methods_[location.functionName_];
+        auto functionLineConditionalContainerItr = function.lines_.find(location.lineNumber_);
+        if (functionLineConditionalContainerItr == function.lines_.end())
+        {
+            THROW("Conditional for unregistered line encountered");
+        }
+        LOG_TRACE << "RegisterBranchAddress: " << lineAddress << " for " << location.fileName_ << ":" << location.lineNumber_;
+        // Different {filename, line} can have the same address.
+        // Same {filename, line} can have several addresses.		
+        bool keepBreakpoint = false;
+        auto itAddress = addressLineMap_.find(lineAddress);
 
+        if (itAddress == addressLineMap_.end())
+        {
+            itAddress = addressLineMap_.emplace(lineAddress, Line{ instructionValue, lastModule_.baseOfImage_ }).first;
+            keepBreakpoint = true;
+        }
+
+        auto& line = itAddress->second;
+        functionLineConditionalContainerItr->second.push_front(false);
+        line.hasBeenExecutedCollection_.push_back(&functionLineConditionalContainerItr->second.front());
+        return keepBreakpoint;
+    }
 	//-------------------------------------------------------------------------
 	ExecutedAddressManager::Module& ExecutedAddressManager::GetLastAddedModule()
 	{
@@ -164,7 +209,7 @@ namespace CppCoverage
 
 				auto& fileCoverage = moduleCoverage.AddFile(name);
 
-				for (const auto& pair : fileData.lines)
+				for (const auto& pair : fileData.lines_)
 				{
 					auto lineNumber = pair.first;
 					bool hasLineBeenExecuted = pair.second;

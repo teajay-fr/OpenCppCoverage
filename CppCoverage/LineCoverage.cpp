@@ -37,4 +37,17 @@ namespace CppCoverage
 	{
 		return hasBeenExecuted_;
 	}
+
+	//-------------------------------------------------------------------------
+    BranchCoverage &LineCoverage::AddBranch(unsigned int branchNumber, bool hasBeenExecuted)
+    {
+        branches_.push_back(BranchCoverage(branchNumber, hasBeenExecuted));
+        return branches_.back();
+    }
+
+	//-------------------------------------------------------------------------
+    const LineCoverage::T_BranchCoverageCollection& LineCoverage::GetBranches() const
+    {
+        return branches_;
+    }
 }

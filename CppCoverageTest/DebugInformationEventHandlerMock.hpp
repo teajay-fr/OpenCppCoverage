@@ -26,7 +26,11 @@ namespace CppCoverageTest
 		DebugInformationEventHandlerMock() = default;
 		
 		MOCK_CONST_METHOD1(IsSourceFileSelected, bool(const std::wstring&));
-		MOCK_METHOD3(OnNewLine, void(const std::wstring& fileName, int lineNumber, const CppCoverage::Address&));
+        MOCK_METHOD1(OnNewFile, void(const std::wstring& fileName));
+        MOCK_METHOD1(OnNewClass,void(const std::wstring&className));
+        MOCK_METHOD3(OnNewFunction, void(const std::wstring&fileName, const std::wstring &className, const std::wstring &functionName));
+        MOCK_METHOD1(OnNewLine, void(const CppCoverage::SourceCodeLocation&));
+        MOCK_METHOD2(OnNewConditional, void(const CppCoverage::SourceCodeLocation&, const CppCoverage::Address &branchAddress));
 
 	private:
 		DebugInformationEventHandlerMock(const DebugInformationEventHandlerMock&) = delete;

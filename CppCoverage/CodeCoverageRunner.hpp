@@ -53,8 +53,11 @@ namespace CppCoverage
 		virtual ExceptionType OnException(HANDLE hProcess, HANDLE hThread, const EXCEPTION_DEBUG_INFO&) override;
 
 	private:
-		virtual void OnNewLine(const std::wstring& fileName, int lineNumber, const Address&) override;
-
+        virtual void OnNewFile(const std::wstring &fileName) override;
+        virtual void OnNewClass(const std::wstring &className) override;
+        virtual void OnNewFunction(const std::wstring &fileName, const std::wstring &className, const std::wstring &functionName) override;
+        virtual void OnNewLine(const SourceCodeLocation &location ) override;
+        virtual void OnNewConditional(const SourceCodeLocation& location, const Address &branchAddress) override;
 	private:
 		CodeCoverageRunner(const CodeCoverageRunner&) = delete;
 		CodeCoverageRunner& operator=(const CodeCoverageRunner&) = delete;
@@ -63,6 +66,7 @@ namespace CppCoverage
 		bool OnBreakPoint(const EXCEPTION_DEBUG_INFO&, HANDLE hProcess, HANDLE hThread);
 
 	private:
+        
 		std::unordered_map<HANDLE, std::unique_ptr<DebugInformation>> debugInformation_;
 		std::unique_ptr<BreakPoint> breakpoint_;
 		std::unique_ptr<ExecutedAddressManager> executedAddressManager_;

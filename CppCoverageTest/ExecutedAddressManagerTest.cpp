@@ -23,6 +23,7 @@
 #include "CppCoverage/FileCoverage.hpp"
 #include "CppCoverage/LineCoverage.hpp"
 #include "CppCoverage/Address.hpp"
+#include "CppCoverage/SourceCodeLocation.hpp"
 
 namespace cov = CppCoverage;
 
@@ -46,11 +47,11 @@ namespace CppCoverageTest
 	{		
 		cov::ExecutedAddressManager manager;
 		cov::Address address = CreateAddress(0);
-
-		ASSERT_THROW(manager.RegisterAddress(address, L"", 0, 0), cov::CppCoverageException);
+        boost::flyweight<std::wstring> emptyString;
+		ASSERT_THROW(manager.RegisterAddress(cov::SourceCodeLocation(emptyString, emptyString, emptyString, 0, address), 0), cov::CppCoverageException);
 
 		manager.AddModule(L"", nullptr);
-		manager.RegisterAddress(address, L"", 0, 0);
+		manager.RegisterAddress(cov::SourceCodeLocation(emptyString, emptyString, emptyString, 0, address), 0);
 	}
 
 	//-------------------------------------------------------------------------
@@ -58,12 +59,13 @@ namespace CppCoverageTest
 	{
 		cov::ExecutedAddressManager manager;
 		cov::Address address = CreateAddress(0);
+        boost::flyweight<std::wstring> emptyString;
 
 		manager.AddModule(L"", nullptr);
 
 		ASSERT_EQ(boost::none, manager.MarkAddressAsExecuted(address));
 
-		manager.RegisterAddress(address, L"", 0, 0);
+		manager.RegisterAddress(cov::SourceCodeLocation(emptyString, emptyString, emptyString, 0, address), 0);
 		ASSERT_NO_THROW(manager.MarkAddressAsExecuted(address));
 	}	
 
@@ -72,16 +74,18 @@ namespace CppCoverageTest
 	{
 		cov::ExecutedAddressManager manager;
 		
-		const std::wstring moduleName = L"module";
-		const std::wstring filename = L"filename";
+		const boost::flyweight<std::wstring> moduleName(L"module");
+		const boost::flyweight<std::wstring> filename(L"filename");
+		const boost::flyweight<std::wstring> scope(L"scope");
+		const boost::flyweight<std::wstring> function(L"function");
 		const char instructionLine42 = 10;
 		const char instructionLine43 = 11;
 		cov::Address address1 = CreateAddress(1);
 		cov::Address address2 = CreateAddress(2); 
 		HANDLE hProcess = nullptr;
 		manager.AddModule(moduleName, nullptr);
-		manager.RegisterAddress(address1, filename, 42, instructionLine42);
-		manager.RegisterAddress(address2, filename, 43, instructionLine43);
+		manager.RegisterAddress(cov::SourceCodeLocation(filename, scope, function, 42, address1), instructionLine42);
+		manager.RegisterAddress(cov::SourceCodeLocation(filename, scope, function, 43, address2), instructionLine43);
 		manager.MarkAddressAsExecuted(address2);
 		manager.OnExitProcess(hProcess);
 
@@ -91,13 +95,13 @@ namespace CppCoverageTest
 		ASSERT_EQ(1, modules.size());
 
 		const auto& module = *modules.front();
-		ASSERT_EQ(moduleName, module.GetPath());
+		ASSERT_EQ(moduleName.get(), module.GetPath());
 
 		const auto& files = module.GetFiles();
 		ASSERT_EQ(1, files.size());
 
 		const auto& file = *files.front();
-		ASSERT_EQ(filename, file.GetPath());
+		ASSERT_EQ(filename.get(), file.GetPath());
 
 		const auto* line42 = file[42];
 		const auto* line43 = file[43];

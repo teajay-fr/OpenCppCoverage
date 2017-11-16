@@ -15,31 +15,23 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
-#include <vector>
-#include <memory>
-#include "BranchCoverage.hpp"
+
 #include "CppCoverageExport.hpp"
 
 namespace CppCoverage
 {
-	class CPPCOVERAGE_DLL LineCoverage
+	class CPPCOVERAGE_DLL BranchCoverage
 	{
 	public:
-        typedef std::vector<BranchCoverage> T_BranchCoverageCollection;
-
-		LineCoverage(unsigned int lineNumber, bool hasBeenExecuted);
-		LineCoverage(const LineCoverage&) = default;
+		BranchCoverage(unsigned int branchNumber, bool hasBeenExecuted);
+		BranchCoverage(const BranchCoverage&) = default;
 		
-		unsigned int GetLineNumber() const;
+		unsigned int GetBranchNumber() const;
 		bool HasBeenExecuted() const;
-
-        BranchCoverage& AddBranch(const unsigned int branchNumber, bool hasBeenExcuted);
-        const T_BranchCoverageCollection & GetBranches() const;
 		
 	private:
-		unsigned int lineNumber_;
+		unsigned int branchNumber_;
 		bool hasBeenExecuted_;
-        T_BranchCoverageCollection branches_;
 	};
 }
 

@@ -22,6 +22,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 
 #include "Tools/DbgHelp.hpp"
+#include "cvconst.h"
 #include "Tools/Tool.hpp"
 #include "Tools/Log.hpp"
 #include "Tools/ScopedAction.hpp"
@@ -30,6 +31,7 @@
 #include "ICoverageFilterManager.hpp"
 
 #include "FileFilter/ModuleInfo.hpp"
+#include <iostream>
 
 namespace CppCoverage
 {
@@ -43,7 +45,7 @@ namespace CppCoverage
 				DWORD64 baseAddress,
 				void* processBaseOfImage,
 				const boost::uuids::uuid& moduleUniqueId,
-				const FileDebugInformation& fileDebugInformation,
+				FileDebugInformation& fileDebugInformation,
 				ICoverageFilterManager& coverageFilterManager,
 				IDebugInformationEventHandler& debugInformationEventHandler)
 				: moduleInfo_{hProcess, moduleUniqueId, processBaseOfImage, baseAddress}
@@ -54,14 +56,14 @@ namespace CppCoverage
 			}
 
 			FileFilter::ModuleInfo moduleInfo_;
-			const FileDebugInformation& fileDebugInformation_;
+			FileDebugInformation& fileDebugInformation_;
 			IDebugInformationEventHandler& debugInformationEventHandler_;
 			ICoverageFilterManager& coverageFilterManager_;
 			boost::optional<std::wstring> error_;
 		};
 
 		//---------------------------------------------------------------------
-		BOOL CALLBACK SymEnumSourceFilesProc(PSOURCEFILE pSourceFile, PVOID userContext)			
+	/*	BOOL CALLBACK SymEnumSourceFilesProc(PSOURCEFILE pSourceFile, PVOID userContext)			
 		{
 			auto context = static_cast<Context*>(userContext);
 
@@ -89,7 +91,7 @@ namespace CppCoverage
 			});
 			return context->error_ ? FALSE : TRUE;
 		}
-
+        */
 		//-------------------------------------------------------------------------
 		BOOL CALLBACK SymRegisterCallbackProc64(
 			_In_      HANDLE hProcess,
@@ -109,6 +111,59 @@ namespace CppCoverage
 
 			return FALSE;
 		}
+        struct CImageHlpLine64 : public IMAGEHLP_LINE64
+        {
+            CImageHlpLine64()
+            {
+                SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+            }
+        };
+
+        BOOL CALLBACK SymEnumFunctionsProc(
+            _In_     PSYMBOL_INFO pSymInfo,
+            _In_     ULONG        SymbolSize,
+            _In_opt_ PVOID        userContext
+        )
+        {
+            auto context = static_cast<Context*>(userContext);
+
+            if (!userContext)
+            {
+                LOG_ERROR << L"Invalid user context.";
+                return FALSE;
+            }
+
+            context->error_ = Tools::Try([&]()
+            {
+                if (pSymInfo->Tag == SymTagEnum::SymTagFunction)
+                {
+                    CImageHlpLine64 lineInfo;
+                    DWORD lineDisplacement = 0; // Displacement from the beginning of the line 
+
+                    if (SymGetLineFromAddr64(
+                        context->moduleInfo_.hProcess_, // Process handle of the current process 
+                        pSymInfo->Address,  // Address 
+                        &lineDisplacement, // Displacement will be stored here by the function 
+                        &lineInfo          // File name / line information will be stored here 
+                    ))
+                    {
+                        auto filename = Tools::LocalToWString(lineInfo.FileName);
+
+                        if (context->coverageFilterManager_.IsSourceFileSelected(filename))
+                        {
+                            context->fileDebugInformation_.LoadFunction(
+                                context->moduleInfo_,
+                                filename,
+                                pSymInfo,
+                                &lineInfo,
+                                context->coverageFilterManager_,
+                                context->debugInformationEventHandler_);
+                        }
+                    }
+                }
+            });
+            return context->error_ ? FALSE : TRUE;
+        }
 	}
 	
 	//-------------------------------------------------------------------------
@@ -140,12 +195,12 @@ namespace CppCoverage
 	}
 	
 	//-------------------------------------------------------------------------
-	void DebugInformation::LoadModule(
+    FileFilter::ModuleInfo DebugInformation::LoadModule(
 		const std::wstring& filename,
 		HANDLE hFile,
 		void* baseOfImage,
 		ICoverageFilterManager& coverageFilterManager,
-		IDebugInformationEventHandler& debugInformationEventHandler) const
+		IDebugInformationEventHandler& debugInformationEventHandler)
 	{		
 		UpdateSearchPath(filename);
 		auto baseAddress = SymLoadModuleEx(hProcess_, hFile, nullptr, nullptr, 0, 0, nullptr, 0);
@@ -162,10 +217,20 @@ namespace CppCoverage
 		Context context{ hProcess_, baseAddress, baseOfImage, moduleUniqueId, fileDebugInformation_,
 			coverageFilterManager, debugInformationEventHandler };
 
-		if (!SymEnumSourceFiles(hProcess_, baseAddress, nullptr, SymEnumSourceFilesProc, &context))
+        if (!SymEnumSymbols(hProcess_, baseAddress, nullptr, SymEnumFunctionsProc, &context))
+        {
+            LOG_WARNING << L"Failed to enumerate functions for " << filename;
+        }
+        if (context.error_)
+            throw std::runtime_error(Tools::ToLocalString(*context.error_));
+
+	/*	if (!SymEnumSourceFiles(hProcess_, baseAddress, nullptr, SymEnumSourceFilesProc, &context))
 			LOG_WARNING << L"Cannot find pdb for " << filename;
 		if (context.error_)
 			throw std::runtime_error(Tools::ToLocalString(*context.error_));
+        
+      */
+        return context.moduleInfo_;
 	}
 
 	//-------------------------------------------------------------------------

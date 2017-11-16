@@ -20,6 +20,7 @@
 
 #include "Tools/ScopedAction.hpp"
 #include "Tools/Tool.hpp"
+#include "Tools/DbgHelp.hpp"
 
 namespace CppCoverage
 {
@@ -65,7 +66,18 @@ namespace CppCoverage
 		
 		exceptionCode_.emplace(CppExceptionErrorCode, ExceptionCpp);
 	}
-	
+
+    void ExceptionHandler::AddModule(const FileFilter::ModuleInfo &moduleInfo)
+    {
+        loadedModules_.emplace_back(moduleInfo);
+        loadedModules_.sort(
+            [&](const FileFilter::ModuleInfo &a, const FileFilter::ModuleInfo &b)
+        {
+            return a.baseAddress_ < b.baseAddress_;
+        }
+        );
+    }
+
 	//-------------------------------------------------------------------------
 	ExceptionHandlerStatus ExceptionHandler::HandleException(
 		HANDLE hProcess,
@@ -91,6 +103,29 @@ namespace CppCoverage
 
 			return ExceptionHandlerStatus::FirstChanceException;
 		}
+        else if (exceptionDebugInfo.ExceptionRecord.ExceptionCode == EXCEPTION_ACCESS_VIOLATION)
+        {
+            auto exAddr = reinterpret_cast<const DWORD64>(exceptionDebugInfo.ExceptionRecord.ExceptionAddress);
+            auto module = std::upper_bound(loadedModules_.begin(), loadedModules_.end(), exAddr,
+                [&](const DWORD64 addr, const FileFilter::ModuleInfo& module) {
+                return module.baseAddress_ < addr;
+                });
+            if (module != loadedModules_.end())
+            {
+                std::vector<char> symbolBuffer(sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR));
+                PSYMBOL_INFO destSymbol = reinterpret_cast<PSYMBOL_INFO>(symbolBuffer.data());
+                destSymbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+                destSymbol->MaxNameLen = MAX_SYM_NAME;
+                DWORD64 displacement64 = 0;
+                if (SymFromAddr(hProcess, exAddr - ((ULONG64)module->baseOfImage_ - module->baseAddress_), &displacement64, destSymbol) == FALSE)
+                {
+                    DWORD error = GetLastError();
+                    message << "Failed to retrieve symbol for exception "<< error << std::endl;
+                }
+                else
+                    message << Tools::LocalToWString(std::string(&destSymbol->Name[0], &destSymbol->Name[0] + destSymbol->NameLen)) << std::endl;
+            }
+        }
 				
 		message << std::endl << std::endl;
 		message << Tools::GetSeparatorLine() << std::endl;

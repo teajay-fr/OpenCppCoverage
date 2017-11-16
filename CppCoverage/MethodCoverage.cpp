@@ -14,33 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
-#include <vector>
-#include <memory>
-#include "BranchCoverage.hpp"
-#include "CppCoverageExport.hpp"
+#include "stdafx.h"
+#include "MethodCoverage.hpp"
 
 namespace CppCoverage
 {
-	class CPPCOVERAGE_DLL LineCoverage
+	//-------------------------------------------------------------------------
+	MethodCoverage::MethodCoverage(const std::wstring &methodName)
+		: methodName_(methodName)
 	{
-	public:
-        typedef std::vector<BranchCoverage> T_BranchCoverageCollection;
-
-		LineCoverage(unsigned int lineNumber, bool hasBeenExecuted);
-		LineCoverage(const LineCoverage&) = default;
+	}
 		
-		unsigned int GetLineNumber() const;
-		bool HasBeenExecuted() const;
-
-        BranchCoverage& AddBranch(const unsigned int branchNumber, bool hasBeenExcuted);
-        const T_BranchCoverageCollection & GetBranches() const;
-		
-	private:
-		unsigned int lineNumber_;
-		bool hasBeenExecuted_;
-        T_BranchCoverageCollection branches_;
-	};
+	//-------------------------------------------------------------------------
+	std::wstring MethodCoverage::GetMethodName() const
+	{
+		return methodName_;
+	}
+	
 }
-
-

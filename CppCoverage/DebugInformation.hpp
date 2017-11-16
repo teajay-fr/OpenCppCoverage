@@ -30,12 +30,12 @@ namespace CppCoverage
 		explicit DebugInformation(HANDLE hProcess);
 		~DebugInformation();
 
-		void LoadModule(
+        FileFilter::ModuleInfo LoadModule(
 			const std::wstring& filename, 
 			HANDLE hFile, 
 			void* baseOfImage,
 			ICoverageFilterManager&,
-			IDebugInformationEventHandler& debugInformationEventHandler) const;
+			IDebugInformationEventHandler& debugInformationEventHandler);
 
 	private:
 		DebugInformation(const DebugInformation&) = delete;

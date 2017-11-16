@@ -23,6 +23,7 @@
 
 #include "CppCoverage/DebugInformation.hpp"
 #include "CppCoverage/Address.hpp"
+#include "CppCoverage/SourceCodeLocation.hpp"
 
 #include "FileFilter/ModuleInfo.hpp"
 #include "FileFilter/FileInfo.hpp"
@@ -94,11 +95,11 @@ namespace CppCoverageTest
 			[=](const std::wstring& path){ return boost::algorithm::icontains(path, mainCppPath); }));
 
 		std::vector<int> newLines;
-		EXPECT_CALL(eventHandlerMock, OnNewLine(_, _, _))
+		EXPECT_CALL(eventHandlerMock, OnNewLine(_))
 			.WillRepeatedly(Invoke(
-				[&](const std::wstring&, int lineNumber, const cov::Address&)
+				[&](const cov::SourceCodeLocation&loc)
 		{
-			newLines.push_back(lineNumber);
+			newLines.push_back(loc.lineNumber_);
 		}));
 
 		TestTools::GetHandles(TestCoverageConsole::GetOutputBinaryPath(), [&](HANDLE hProcess, HANDLE hFile)
@@ -116,8 +117,8 @@ namespace CppCoverageTest
 	{
 		DebugInformationEventHandlerMock eventHandlerMock;
 
-		EXPECT_CALL(eventHandlerMock, OnNewLine(_, _, _)).WillOnce(Invoke(
-			[&](const std::wstring&, int, const cov::Address&)
+		EXPECT_CALL(eventHandlerMock, OnNewLine(_)).WillOnce(Invoke(
+			[&](const cov::SourceCodeLocation&)
 		{
 			throw std::runtime_error{""};
 		}));
