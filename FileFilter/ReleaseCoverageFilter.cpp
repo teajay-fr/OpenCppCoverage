@@ -90,8 +90,12 @@ namespace FileFilter
 				moduleInfo.baseAddress_);
 		}
 		
-		if (updateLineDataCaches)
-			UpdateLineDataCaches(fileInfo.lineInfoColllection_);
+        if (updateLineDataCaches)
+        {
+            for (auto &symbol : fileInfo.symbolInfoCollection_) {
+                UpdateLineDataCaches(symbol.first, symbol.second.lineInfoColllection_);
+            }
+        }
 
 		hProcess_ = hProcess;
 		moduleUniqueId_ = moduleUniqueId;
@@ -99,13 +103,12 @@ namespace FileFilter
 	}
 
 	//-------------------------------------------------------------------------
-	void ReleaseCoverageFilter::UpdateLineDataCaches(const std::vector<LineInfo>& lineDatas)
+	void ReleaseCoverageFilter::UpdateLineDataCaches(ULONG symbolIndex, const std::vector<LineInfo>& lineDatas)
 	{
 		std::unordered_map<ULONG, DWORD64> addressesBySymboleIndex;
 		for (const auto& lineData: lineDatas)
 		{
 			auto lineAddress = lineData.lineAddress_;
-			auto symbolIndex = lineData.symbolIndex_;
 			auto lineNumber = lineData.lineNumber_;
 
 			auto it = addressesBySymboleIndex.emplace(symbolIndex, 0).first;

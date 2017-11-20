@@ -17,10 +17,10 @@
 #pragma once
 
 #include <windows.h>
-#include <vector>
+#include <unordered_map>
 #include <boost/filesystem/path.hpp>
 
-#include "LineInfo.hpp"
+#include "SymbolInfo.hpp"
 
 namespace FileFilter
 {
@@ -29,12 +29,13 @@ namespace FileFilter
 	public:
 		FileInfo(
 			const boost::filesystem::path& filePath,
-			std::vector<LineInfo>&& lineInfoColllection)
+			std::unordered_map<ULONG, SymbolInfo>&& symbolInfoColllection)
 			: filePath_{ filePath }
-			, lineInfoColllection_{ std::move(lineInfoColllection) }
-		{}
-
+			, symbolInfoCollection_{ std::move(symbolInfoColllection) }
+		{
+        }
 		const boost::filesystem::path filePath_;
-		const std::vector<LineInfo> lineInfoColllection_;
+		std::unordered_map<ULONG, SymbolInfo> symbolInfoCollection_;
+        
 	};	
 }

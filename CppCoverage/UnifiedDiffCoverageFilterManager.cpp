@@ -182,8 +182,9 @@ namespace CppCoverage
 			auto& executableLinesSet = executableLineCache_.executableLinesSet;
 
 			executableLinesSet.clear();
-			for (const auto& lineInfo : fileInfo.lineInfoColllection_)
-				executableLinesSet.insert(lineInfo.lineNumber_);
+            for( const auto& symbolInfo : fileInfo.symbolInfoCollection_)
+    			for (const auto& lineInfo : symbolInfo.second.lineInfoColllection_)
+	    			executableLinesSet.insert(lineInfo.lineNumber_);
 			LOG_DEBUG << L"Executable lines for " << filePath << L": ";
 			LOG_DEBUG << ToWString(executableLinesSet);
 			executableLineCache_.currentFilePath = filePath;

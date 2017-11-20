@@ -46,7 +46,7 @@ namespace FileFilter
 		ReleaseCoverageFilter& operator=(ReleaseCoverageFilter&&) = delete;
 
 		void UpdateCachesIfExpired(const ModuleInfo&, const FileInfo&);
-		void UpdateLineDataCaches(const std::vector<LineInfo>&);
+		void UpdateLineDataCaches(ULONG symbolIndex, const std::vector<LineInfo>&);
 
 		const std::unique_ptr<IRelocationsExtractor> relocationsExtractor_;
 		

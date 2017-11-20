@@ -40,6 +40,7 @@ namespace CppCoverage
 		virtual bool IsLineSelected(
 			const FileFilter::ModuleInfo&,
 			const FileFilter::FileInfo&,
+            const std::wstring&,
 			const FileFilter::LineInfo&) = 0;
 	};
 }

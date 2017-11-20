@@ -32,7 +32,7 @@
 
 #include "FileFilter/ModuleInfo.hpp"
 #include "FileFilter/FileInfo.hpp"
-#include "FileFilter/LineInfo.hpp"
+#include "FileFilter/SymbolInfo.hpp"
 #include "zydis_wrapper.h"
 #include <iostream>
 #include <regex>
@@ -50,7 +50,7 @@ namespace CppCoverage
             }
 
             HANDLE hProcess_;
-            std::vector<FileFilter::LineInfo> lineInfoCollection_;
+            std::unordered_map<ULONG, FileFilter::SymbolInfo> symbolInfoCollection_;
             boost::optional<std::wstring> error_;
         };
 
@@ -68,12 +68,16 @@ namespace CppCoverage
             symbol->MaxNameLen = MAX_SYM_NAME;
             if (!SymFromAddr(context.hProcess_, lineInfo.Address, 0, symbol))
                 THROW("Error when calling SymFromAddr");
-
-            context.lineInfoCollection_.emplace_back(
-                lineInfo.LineNumber,
-                lineInfo.Address,
-                symbol->Index,
-                Tools::LocalToWString(symbol->Name));
+            auto currentSymbolItr = context.symbolInfoCollection_.find(symbol->Index);
+            if (currentSymbolItr == context.symbolInfoCollection_.end())
+            {
+                currentSymbolItr = context.symbolInfoCollection_.emplace(
+                    std::pair<ULONG, FileFilter::SymbolInfo>(symbol->Index, *symbol)
+                ).first;
+            }
+            currentSymbolItr->second.lineInfoColllection_.emplace_back(
+                FileFilter::LineInfo(lineInfo.LineNumber, lineInfo.Address)
+            );
 
             return true;
         }
@@ -116,10 +120,14 @@ namespace CppCoverage
             {
                 THROW("Cannot enumerate source lines for" << filename);
             }
+            for (auto &symbolInfo : context.symbolInfoCollection_)
+            {
+                symbolInfo.second.SortLinesByAddress();
+            }
         }
 
         //-------------------------------------------------------------------------
-        void HandleNewLine(
+       /* void HandleNewLine(
             const FileFilter::ModuleInfo& moduleInfo,
             const FileFilter::FileInfo& fileInfo,
             const FileFilter::LineInfo& lineInfo,
@@ -137,34 +145,10 @@ namespace CppCoverage
 
                // debugInformationEventHandler.OnNewLine(fileInfo.filePath_.wstring(), lineNumber, address);
             }
-        }
+        }*/
     }
 
-    //-------------------------------------------------------------------------
-    /*void FileDebugInformation::LoadFile(
-        const FileFilter::ModuleInfo& moduleInfo,
-        const std::wstring& filePath,
-        ICoverageFilterManager& coverageFilterManager,
-        IDebugInformationEventHandler& debugInformationEventHandler) const
-    {
-        LineContext context{ moduleInfo.hProcess_ };
 
-        RetreiveLineData(filePath, moduleInfo.baseAddress_, context);
-        if (context.error_)
-            throw std::runtime_error(Tools::ToLocalString(*context.error_));
-
-        FileFilter::FileInfo fileInfo{ filePath, std::move(context.lineInfoCollection_) };
-
-        for (const auto& lineInfo : fileInfo.lineInfoColllection_)
-        {
-            HandleNewLine(
-                moduleInfo,
-                fileInfo,
-                lineInfo,
-                coverageFilterManager,
-                debugInformationEventHandler);
-        }
-    }*/
     std::tuple<std::wstring, std::wstring> SplitScopeAndFunction(const std::wstring &functionName)
     {
         static std::wregex scopeAndFunctionExtractor(L"::(\\w+)$", std::regex_constants::ECMAScript);
@@ -177,23 +161,20 @@ namespace CppCoverage
         }
         return std::make_tuple(L"_Global_", functionName);
     }
+    
+    FileDebugInformation::FileDebugInformation()
+        : checkStackVarAddress_{}
+        , checkStackVarsJumpAddress_{}
+    {
+    }
 
-    void FileDebugInformation::LoadFunction(const FileFilter::ModuleInfo&module,
-        const std::wstring &filename,
-        PSYMBOL_INFO symbol,
-        PIMAGEHLP_LINE64 sourceLineInfo,
+    void FileDebugInformation::HandleNewSymbol(const FileFilter::ModuleInfo&module,
+        const FileFilter::FileInfo& fileInfo,
+        const FileFilter::SymbolInfo &symbol,
         ICoverageFilterManager& coverageFilterManager,
         IDebugInformationEventHandler& debugInformationEventHandler)
-    {
-        std::vector<char> symbolBuffer(sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR));
-        // Do we already know this file ?
-        boost::flyweight<std::wstring> file(filename);
-        if (knownFiles.find(file) == knownFiles.end())
-        {
-            debugInformationEventHandler.OnNewFile(filename);
-            knownFiles.insert(file);
-        }
-        auto functionScope = SplitScopeAndFunction(std::wstring(&symbol->Name[0], &symbol->Name[0] + symbol->NameLen));
+    { 
+        auto functionScope = SplitScopeAndFunction(symbol.name_);
         boost::flyweight<std::wstring> scopeName(std::get<0>(functionScope));
         if (knownScopes.find(scopeName) == knownScopes.end())
         {
@@ -202,76 +183,161 @@ namespace CppCoverage
         }
         boost::flyweight<std::wstring> functionName(std::get<1>(functionScope));
 
-        debugInformationEventHandler.OnNewFunction(file, scopeName, functionName);
+        debugInformationEventHandler.OnNewFunction(fileInfo.filePath_.native(), scopeName, functionName);
         Zydis disassembler;
         // Create a buffer to copy the code into accessible memory for disassembly
         std::vector<unsigned char> disasmData;
-        disasmData.resize(symbol->Size);
-        ULONG64 procAddress = symbol->Address + (ULONG64)module.baseOfImage_ - module.baseAddress_;
+        disasmData.resize(symbol.size_);
+        ULONG64 procAddress = symbol.address_ + (ULONG64)module.baseOfImage_ - module.baseAddress_;
         auto result = ReadProcessMemory(module.hProcess_, (void*)procAddress, disasmData.data(), disasmData.size(), nullptr);
         auto currentData = disasmData.data();
         auto dataLeft = disasmData.size();
-        ULONG64 pdbProcAddress = symbol->Address;
-        ULONG64 procEndAddress = procAddress + symbol->Size;
+        ULONG64 pdbProcAddress = symbol.address_;
+        ULONG64 procEndAddress = procAddress + symbol.size_;
         bool lastSymbolLineReached = false;
         PCHAR lastFileName = nullptr;
+        int lastInstructionSize = 0;
+        DWORD64 stackCheckTokenAddress = 0;
+        auto lineIterator = symbol.lineInfoColllection_.begin();
         SourceCodeLocation currentSourceLocation(
-            file,
+            boost::flyweight<std::wstring>(fileInfo.filePath_.native()),
             scopeName,
             functionName,
-            sourceLineInfo->LineNumber,
-            Address(module.hProcess_, reinterpret_cast<void*>(sourceLineInfo->Address))
-            );
-        DWORD displacement = 0;
-        IMAGEHLP_LINE64 addrLine = {};
-        while (dataLeft > 0 && disassembler.Disassemble((size_t)procAddress, currentData, dataLeft))
+            lineIterator->lineNumber_,
+            Address(module.hProcess_, reinterpret_cast<void*>(procAddress))
+        );
+        if (pdbProcAddress != lineIterator->lineAddress_)
         {
-            if(!SymGetLineFromAddr64(module.hProcess_, pdbProcAddress, &displacement, &addrLine))
-            {
-                break;
-            }            
-            bool skip = false;
-            if (addrLine.LineNumber != currentSourceLocation.lineNumber_ || addrLine.FileName != lastFileName)
-            {
-                // Skip any entries which don't correspond to valid line numbers
-                const int NoSource = 0x00feefee;
-                if (addrLine.LineNumber == NoSource)
+            THROW("PDB line address and symbol disassembly discrepency.");
+        }
+        bool isLineSelected = coverageFilterManager.IsLineSelected(module, fileInfo, symbol.name_, *lineIterator);
+        if (isLineSelected)
+        {
+            debugInformationEventHandler.OnNewLine(currentSourceLocation);
+        }        
+        while (dataLeft > 0 && disassembler.Disassemble((size_t)procAddress, currentData, dataLeft) && procAddress < procEndAddress)
+        {
+            // Are we on another line ?
+            if (lineIterator != symbol.lineInfoColllection_.end() && pdbProcAddress >= lineIterator->lineAddress_)
+            {                
+                if (lineIterator == symbol.lineInfoColllection_.end())
+                    isLineSelected = false;
+                else
+                    isLineSelected = coverageFilterManager.IsLineSelected(module, fileInfo, symbol.name_, *lineIterator);
+                if (isLineSelected)
                 {
-                    skip = true;
-                }
-                else if (coverageFilterManager.IsLineSelected(module, fileInfo, lineInfo))
-                {
-
-                    lastFileName = addrLine.FileName;
-                    if (addrLine.FileName != lastFileName)
+                    currentSourceLocation.lineNumber_ = lineIterator->lineNumber_;
+                    if (pdbProcAddress != lineIterator->lineAddress_)
                     {
-                        currentSourceLocation.fileName_ = Tools::LocalToWString(addrLine.FileName);
+                        THROW("PDB line address and symbol disassembly discrepency.");
                     }
-
-                    currentSourceLocation.lineNumber_ = addrLine.LineNumber;
                     currentSourceLocation.address_ = Address(module.hProcess_, reinterpret_cast<void*>(procAddress));
-                    
                     debugInformationEventHandler.OnNewLine(currentSourceLocation);
                 }
-            }            
-            if (!skip) {
-                PSYMBOL_INFO destSymbol = reinterpret_cast<PSYMBOL_INFO>(symbolBuffer.data());
-                destSymbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-                destSymbol->MaxNameLen = MAX_SYM_NAME;
-                if (disassembler.IsBranchType(Zydis::BranchType::BTCondJmpSem))
+                lineIterator++;
+                
+            }
+            bool addConditionBreakpoint = true;
+            if (checkStackVarsJumpAddress_ == 0 && disassembler.IsBranchType(Zydis::BranchType::BTCallSem))
+            {
+                DWORD64 jmpTargetData = 0;
+                auto target = (void*)disassembler.BranchDestination();
+                auto result = ReadProcessMemory(module.hProcess_, target, &jmpTargetData, sizeof(jmpTargetData), nullptr);
+                Zydis disassembler2;
+                disassembler2.Disassemble(disassembler.BranchDestination(), reinterpret_cast<unsigned char*>(&jmpTargetData), sizeof(jmpTargetData));
+                if (disassembler2.IsBranchType(Zydis::BranchType::BTUncondJmpSem))
                 {
-                    void *branchAddress = reinterpret_cast<void*>(procAddress);
-                    // Do not add a conditional monitoring break point if the target address is outside of the symbol address range
-                    if (disassembler.BranchDestination() <= procEndAddress)
+                    if (disassembler2.BranchDestination() == checkStackVarAddress_)
                     {
-                        debugInformationEventHandler.OnNewConditional(currentSourceLocation, Address(module.hProcess_, branchAddress));
+                        checkStackVarsJumpAddress_ = disassembler.BranchDestination();
                     }
                 }
             }
+            if (isLineSelected)
+            {
+                if (disassembler.IsBranchType(Zydis::BranchType::BTCondJmpSem))
+                {
+                    void *branchAddress = reinterpret_cast<void*>(procAddress);
+                    DWORD displacement = 0;
+                    IMAGEHLP_LINE64 line = {};
+                    line.SizeOfStruct = sizeof(line);
+                    SymGetLineFromAddr64(module.hProcess_, pdbProcAddress, &displacement, &line);
+                  
+                        // Only add a conditional monitoring break point if the target address is inside of the symbol address range
+                        if (disassembler.BranchDestination() <= procEndAddress && procAddress != stackCheckTokenAddress)
+                        {
+                            debugInformationEventHandler.OnNewConditional(currentSourceLocation, Address(module.hProcess_, branchAddress));
+                        }
+                    
+                }
+                
+            }
+
             procAddress += disassembler.Size();
             pdbProcAddress += disassembler.Size();
             dataLeft -= disassembler.Size();
             currentData += disassembler.Size();
+            bool enableCheckStackVarLimitCheck = false;
+            if ((checkStackVarAddress_ != 0 || checkStackVarsJumpAddress_ != 0) && disassembler.IsCall())
+            {
+                auto branchTargetAddress = disassembler.BranchDestination();
+                if (checkStackVarAddress_ != 0 && branchTargetAddress == checkStackVarAddress_)
+                {
+                    enableCheckStackVarLimitCheck = true;
+                }
+                else if (checkStackVarsJumpAddress_ != 0 && branchTargetAddress == checkStackVarsJumpAddress_ ) 
+                {
+                    enableCheckStackVarLimitCheck = true;
+                }
+            }
+            if (enableCheckStackVarLimitCheck) {
+                
+                    int callIntructionSize = disassembler.Size();
+                    // Jump one instruction back to get the stack check token address.
+                    int previousInstructionOffset = callIntructionSize + lastInstructionSize;
+                    disassembler.Disassemble((size_t)(procAddress - previousInstructionOffset), currentData- previousInstructionOffset, dataLeft + previousInstructionOffset);
+                    lastInstructionSize = callIntructionSize;
+                    procEndAddress = disassembler.ResolveOpValue(1, [](ZydisRegister) { return 0; });
+            }
+            else
+            {
+                lastInstructionSize = disassembler.Size();
+            }           
+        }
+    }
+
+    //-------------------------------------------------------------------------
+    void FileDebugInformation::LoadFile(
+        const FileFilter::ModuleInfo& moduleInfo,
+        const std::wstring& filePath,
+        ICoverageFilterManager& coverageFilterManager,
+        IDebugInformationEventHandler& debugInformationEventHandler) 
+    {
+        LineContext context{ moduleInfo.hProcess_ };
+
+        RetreiveLineData(filePath, moduleInfo.baseAddress_, context);
+        if (context.error_)
+            throw std::runtime_error(Tools::ToLocalString(*context.error_));
+        //Early exit if the line collection is empty
+        if (context.symbolInfoCollection_.empty())
+            return;
+
+        FileFilter::FileInfo fileInfo{ filePath, std::move(context.symbolInfoCollection_) };
+
+        for (const auto& symbolInfo : fileInfo.symbolInfoCollection_)
+        {
+            HandleNewSymbol(
+                moduleInfo,
+                fileInfo,
+                symbolInfo.second,
+                coverageFilterManager,
+                debugInformationEventHandler);
+            /*  HandleNewLine(
+            moduleInfo,
+            fileInfo,
+            lineInfo,
+            coverageFilterManager,
+            debugInformationEventHandler);*/
         }
     }
 }

@@ -63,10 +63,11 @@ namespace CppCoverage
 	bool CoverageFilterManager::IsLineSelected(
 		const FileFilter::ModuleInfo& moduleInfo,
 		const FileFilter::FileInfo& fileInfo,
+        const std::wstring &symbolName,
 		const FileFilter::LineInfo& lineInfo)
 	{
 		// Exclude internal compiler symbols.
-		if (boost::algorithm::starts_with(lineInfo.symbolName_, "__"))
+		if (boost::algorithm::starts_with(symbolName, "__"))
 			return false;
 
 		if (optionalReleaseCoverageFilter_ &&

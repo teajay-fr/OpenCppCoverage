@@ -25,6 +25,8 @@
 namespace FileFilter
 {
 	class ModuleInfo;
+    class FileInfo;
+    class SymbolInfo;
 }
 
 namespace CppCoverage
@@ -35,23 +37,27 @@ namespace CppCoverage
 	class CPPCOVERAGE_DLL FileDebugInformation
 	{
 	public:	
-		FileDebugInformation() = default;
+		FileDebugInformation();
 
-	/*	void LoadFile(
+		void LoadFile(
 			const FileFilter::ModuleInfo&,
 			const std::wstring& filename,
 			ICoverageFilterManager& coverageFilterManager,
-			IDebugInformationEventHandler& debugInformationEventHandler) const;*/
-        void LoadFunction(const FileFilter::ModuleInfo&,
-            const std::wstring &filename,
-            PSYMBOL_INFO symbol,
-            PIMAGEHLP_LINE64 sourceLineInfo,
-            ICoverageFilterManager& coverageFilterManager,
-            IDebugInformationEventHandler& debugInformationEventHandler);
+			IDebugInformationEventHandler& debugInformationEventHandler);
+        void SetCheckStackVarFunctionAddress(DWORD64 checkStackVarAddress)
+        {
+            checkStackVarAddress_ = checkStackVarAddress;
+        }
 	private:
 		FileDebugInformation(const FileDebugInformation&) = delete;
-		FileDebugInformation& operator=(const FileDebugInformation&) = delete;        
-        std::set<boost::flyweight<std::wstring>> knownFiles;
+		FileDebugInformation& operator=(const FileDebugInformation&) = delete; 
+        void HandleNewSymbol(const FileFilter::ModuleInfo&module,
+            const FileFilter::FileInfo& fileInfo,
+            const FileFilter::SymbolInfo &symbol,
+            ICoverageFilterManager& coverageFilterManager,
+            IDebugInformationEventHandler& debugInformationEventHandler);
         std::set<boost::flyweight<std::wstring>> knownScopes;
+        DWORD64 checkStackVarAddress_;
+        DWORD64 checkStackVarsJumpAddress_;
 	};
 }

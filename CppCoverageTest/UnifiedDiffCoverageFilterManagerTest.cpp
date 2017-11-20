@@ -120,12 +120,13 @@ namespace CppCoverageTest
 		auto filters = CreateFilter({ filename }, selectedLines);
 		auto filterManager = CreateFilterManager(std::move(filters));
 
-		std::vector<FileFilter::LineInfo> lineInfoColllection;
+        std::unordered_map<ULONG, FileFilter::SymbolInfo> symbolInfoCollection;
+        auto &symbol = symbolInfoCollection[0];
 
 		for (auto line : selectedLines)
-			lineInfoColllection.emplace_back(line, 0, 0, L"");
-		FileFilter::FileInfo fileInfo{ filename, std::move(lineInfoColllection) };
-		FileFilter::LineInfo lineInfo{ lineNumber, 0, 0, L"" };
+            symbol.lineInfoColllection_.emplace_back(line, 0);
+		FileFilter::FileInfo fileInfo{ filename, std::move(symbolInfoCollection) };
+		FileFilter::LineInfo lineInfo{ lineNumber, 0};
 
 		return filterManager->IsLineSelected(fileInfo, lineInfo);
 	}

@@ -105,7 +105,7 @@ namespace OpenCppCoverage
 		//-----------------------------------------------------------------------------
 		void InitLogger(const cov::Options& options)
 		{
-			auto logLevel = logging::trivial::info;
+			auto logLevel = logging::trivial::trace;
 
 			switch (options.GetLogLevel())
 			{

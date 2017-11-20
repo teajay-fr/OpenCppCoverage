@@ -31,6 +31,7 @@
 #include "ICoverageFilterManager.hpp"
 
 #include "FileFilter/ModuleInfo.hpp"
+#include "FileFilter/RelocationsExtractor.hpp"
 #include <iostream>
 
 namespace CppCoverage
@@ -63,7 +64,7 @@ namespace CppCoverage
 		};
 
 		//---------------------------------------------------------------------
-	/*	BOOL CALLBACK SymEnumSourceFilesProc(PSOURCEFILE pSourceFile, PVOID userContext)			
+		BOOL CALLBACK SymEnumSourceFilesProc(PSOURCEFILE pSourceFile, PVOID userContext)			
 		{
 			auto context = static_cast<Context*>(userContext);
 
@@ -91,7 +92,7 @@ namespace CppCoverage
 			});
 			return context->error_ ? FALSE : TRUE;
 		}
-        */
+        
 		//-------------------------------------------------------------------------
 		BOOL CALLBACK SymRegisterCallbackProc64(
 			_In_      HANDLE hProcess,
@@ -119,7 +120,7 @@ namespace CppCoverage
             }
         };
 
-        BOOL CALLBACK SymEnumFunctionsProc(
+      /*  BOOL CALLBACK SymEnumFunctionsProc(
             _In_     PSYMBOL_INFO pSymInfo,
             _In_     ULONG        SymbolSize,
             _In_opt_ PVOID        userContext
@@ -163,7 +164,7 @@ namespace CppCoverage
                 }
             });
             return context->error_ ? FALSE : TRUE;
-        }
+        }*/
 	}
 	
 	//-------------------------------------------------------------------------
@@ -171,7 +172,7 @@ namespace CppCoverage
 		: hProcess_(hProcess)
 	{		
 		SymSetOptions(SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES
-				| SYMOPT_NO_UNQUALIFIED_LOADS | SYMOPT_UNDNAME | SYMOPT_DEBUG);
+				| SYMOPT_NO_UNQUALIFIED_LOADS /*| SYMOPT_UNDNAME */ | SYMOPT_DEBUG);
 						
 		if (!SymInitialize(hProcess_, nullptr, FALSE))
 			THROW("Error when calling SymInitialize. You cannot call this function twice.");
@@ -216,20 +217,25 @@ namespace CppCoverage
 		auto moduleUniqueId = boost::uuids::random_generator()();
 		Context context{ hProcess_, baseAddress, baseOfImage, moduleUniqueId, fileDebugInformation_,
 			coverageFilterManager, debugInformationEventHandler };
+        std::vector<char> symbolData(sizeof(IMAGEHLP_SYMBOL) + MAX_SYM_NAME);
+        PIMAGEHLP_SYMBOL symbol = reinterpret_cast<PIMAGEHLP_SYMBOL>(symbolData.data());
+        symbol->SizeOfStruct = sizeof(IMAGEHLP_SYMBOL);
+        symbol->MaxNameLength = MAX_SYM_NAME;
 
-        if (!SymEnumSymbols(hProcess_, baseAddress, nullptr, SymEnumFunctionsProc, &context))
+        if (SymGetSymFromName(hProcess_, "_RTC_CheckStackVars", symbol))
         {
-            LOG_WARNING << L"Failed to enumerate functions for " << filename;
+            fileDebugInformation_.SetCheckStackVarFunctionAddress(symbol->Address + (ULONG64)baseOfImage - baseAddress);
         }
-        if (context.error_)
-            throw std::runtime_error(Tools::ToLocalString(*context.error_));
-
-	/*	if (!SymEnumSourceFiles(hProcess_, baseAddress, nullptr, SymEnumSourceFilesProc, &context))
+        else
+        {
+            auto error = GetLastError();
+            fileDebugInformation_.SetCheckStackVarFunctionAddress(0);
+        }
+        if (!SymEnumSourceFiles(hProcess_, baseAddress, nullptr, SymEnumSourceFilesProc, &context))
 			LOG_WARNING << L"Cannot find pdb for " << filename;
 		if (context.error_)
 			throw std::runtime_error(Tools::ToLocalString(*context.error_));
         
-      */
         return context.moduleInfo_;
 	}
 

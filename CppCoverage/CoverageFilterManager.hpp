@@ -50,6 +50,7 @@ namespace CppCoverage
 		bool IsLineSelected(
 			const FileFilter::ModuleInfo&,
 			const FileFilter::FileInfo&,
+            const std::wstring&, 
 			const FileFilter::LineInfo&) override;
 
 		std::vector<std::wstring> ComputeWarningMessageLines(size_t maxUnmatchPaths) const;

@@ -139,7 +139,7 @@ namespace CppCoverage
         auto& file = module.files_[location.fileName_];
         auto& classContext = file.classes_[location.className_];
         auto& function = classContext.methods_[location.functionName_];
-        auto functionLineConditionalContainerItr = function.lines_.find(location.lineNumber_);
+        auto functionLineConditionalContainerItr = function.lines_.find(location.lineNumber_);       
         if (functionLineConditionalContainerItr == function.lines_.end())
         {
             THROW("Conditional for unregistered line encountered");
