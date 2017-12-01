@@ -73,8 +73,14 @@ namespace Exporter
 				{
 					auto& file = module.AddFile(Tools::Utf8ToWString(fileProtoBuff.path()));
 
-					for (const auto& line : fileProtoBuff.lines())
-						file.AddLine(line.linenumber(), line.hasbeenexecuted());
+                    for (const auto& lineProtoBuff : fileProtoBuff.lines())
+                    {
+						auto &line = file.AddLine(lineProtoBuff.linenumber(), lineProtoBuff.hasbeenexecuted());
+                        for (const auto &conditionalProtoBuf : lineProtoBuff.condionals())
+                        {
+                            line.AddBranch(conditionalProtoBuf.branchnumber(), conditionalProtoBuf.hasbeenexecuted());
+                        }
+                    }
 				}
 			}
 		}		

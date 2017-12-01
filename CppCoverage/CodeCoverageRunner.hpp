@@ -57,7 +57,7 @@ namespace CppCoverage
         virtual void OnNewClass(const std::wstring &className) override;
         virtual void OnNewFunction(const std::wstring &fileName, const std::wstring &className, const std::wstring &functionName) override;
         virtual void OnNewLine(const SourceCodeLocation &location ) override;
-        virtual void OnNewConditional(const SourceCodeLocation& location, const Address &branchAddress) override;
+        virtual void OnNewConditional(const SourceCodeLocation& location, const Address &trueBranchAddress, const Address &falseBranchAddress) override;
 	private:
 		CodeCoverageRunner(const CodeCoverageRunner&) = delete;
 		CodeCoverageRunner& operator=(const CodeCoverageRunner&) = delete;

@@ -257,18 +257,16 @@ namespace CppCoverage
             {
                 if (disassembler.IsBranchType(Zydis::BranchType::BTCondJmpSem))
                 {
-                    void *branchAddress = reinterpret_cast<void*>(procAddress);
+                    void *branchAddress = reinterpret_cast<void*>(procAddress + disassembler.Size());
                     DWORD displacement = 0;
                     IMAGEHLP_LINE64 line = {};
                     line.SizeOfStruct = sizeof(line);
-                    SymGetLineFromAddr64(module.hProcess_, pdbProcAddress, &displacement, &line);
-                  
-                        // Only add a conditional monitoring break point if the target address is inside of the symbol address range
-                        if (disassembler.BranchDestination() <= procEndAddress && procAddress != stackCheckTokenAddress)
-                        {
-                            debugInformationEventHandler.OnNewConditional(currentSourceLocation, Address(module.hProcess_, branchAddress));
-                        }
-                    
+                    SymGetLineFromAddr64(module.hProcess_, pdbProcAddress, &displacement, &line);                  
+                    // Only add a conditional monitoring break point if the target address is inside of the symbol address range
+                    if (disassembler.BranchDestination() <= procEndAddress && procAddress != stackCheckTokenAddress)
+                    {
+                            debugInformationEventHandler.OnNewConditional(currentSourceLocation, Address(module.hProcess_, branchAddress), Address(module.hProcess_, reinterpret_cast<void*>(disassembler.BranchDestination())));
+                    }                    
                 }
                 
             }

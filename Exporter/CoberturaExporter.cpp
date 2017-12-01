@@ -85,6 +85,17 @@ namespace Exporter
 
 				lineTree.put(L"<xmlattr>.number", std::to_wstring(line.GetLineNumber()));
 				lineTree.put(L"<xmlattr>.hits", line.HasBeenExecuted() ? L"1" : L"0");
+                if (!line.GetBranches().empty())
+                {
+                    lineTree.put(L"<xmlattr>.branch", "true");
+                    property_tree::wptree& conditionsTree = AddChild(lineTree, L"conditions");
+                    for (const auto &condition : line.GetBranches())
+                    {
+                        property_tree::wptree& conditionTree = AddChild(conditionsTree, L"condition");
+                        conditionTree.put(L"<xmlattr>.number", std::to_wstring(condition.GetBranchNumber()));
+                        conditionTree.put(L"<xmlattr>.coverage", std::to_wstring(0));
+                    }
+                }
 			}
 		}
 

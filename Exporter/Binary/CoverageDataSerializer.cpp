@@ -37,6 +37,29 @@ namespace Exporter
 {
 	namespace
 	{
+        //---------------------------------------------------------------------
+        void InitializeProtoBuffFrom(
+            const cov::BranchCoverage& conditional,
+            pb::BranchCoverage& conditionalProtoBuff)
+        {
+            conditionalProtoBuff.set_branchnumber(conditional.GetBranchNumber());
+            conditionalProtoBuff.set_hasbeenexecuted(conditional.HasBeenExecuted());
+        }
+
+        //---------------------------------------------------------------------
+        void InitializeProtoBuffFrom(
+            const cov::LineCoverage& line,
+            pb::LineCoverage& lineProtoBuff)
+        {
+            lineProtoBuff.set_linenumber(line.GetLineNumber());
+            lineProtoBuff.set_hasbeenexecuted(line.HasBeenExecuted());
+            for (const auto& conditional : line.GetBranches())
+            {
+                auto conditionalProtoBuff = lineProtoBuff.add_condionals();
+                InitializeProtoBuffFrom(conditional, *conditionalProtoBuff);
+            }
+        }
+
 		//---------------------------------------------------------------------
 		void InitializeProtoBuffFrom(
 			const cov::FileCoverage& file,
@@ -47,9 +70,7 @@ namespace Exporter
 			for (const auto& line : file.GetLines())
 			{
 				auto lineProtoBuff = fileProtoBuff.add_lines();
-				
-				lineProtoBuff->set_linenumber(line.GetLineNumber());
-				lineProtoBuff->set_hasbeenexecuted(line.HasBeenExecuted());
+                InitializeProtoBuffFrom(line, *lineProtoBuff);
 			}
 		}
 

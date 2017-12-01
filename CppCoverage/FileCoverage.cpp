@@ -28,21 +28,28 @@ namespace CppCoverage
 	}
 
 	//-------------------------------------------------------------------------
-	void FileCoverage::AddLine(unsigned int lineNumber, bool hasBeenExecuted)
+    LineCoverage &FileCoverage::AddLine(unsigned int lineNumber, bool hasBeenExecuted)
 	{
-		LineCoverage line{ lineNumber, hasBeenExecuted };
-
-		if (!lines_.emplace(lineNumber, line).second)
-			THROW(L"Line " << lineNumber << L" already exists for " << path_.wstring());
+        auto found = lines_.find(lineNumber);
+        if (found == lines_.end())
+        {
+            LineCoverage line{ lineNumber, hasBeenExecuted };
+            auto emplace_result = lines_.emplace(lineNumber, line);
+            found = emplace_result.first;
+        }
+        else
+            found->second.SetHasBeenExecuted(hasBeenExecuted);
+        return found->second;
 	}
 
 	//-------------------------------------------------------------------------
 	void FileCoverage::UpdateLine(unsigned int lineNumber, bool hasBeenExecuted)
 	{
-		if (!lines_.erase(lineNumber))
+        auto found = lines_.find(lineNumber);
+		if (found == lines_.end())
 			THROW(L"Line " << lineNumber << L" does not exists and cannot be updated for " << path_.wstring());
 
-		AddLine(lineNumber, hasBeenExecuted);
+        found->second.SetHasBeenExecuted(hasBeenExecuted);
 	}
 
 	//-------------------------------------------------------------------------

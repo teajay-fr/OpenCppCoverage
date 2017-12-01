@@ -30,7 +30,7 @@ namespace CppCoverage
 	public:
 		explicit FileCoverage(const boost::filesystem::path& path);
 
-		void AddLine(unsigned int lineNumber, bool hasBeenExecuted);
+		LineCoverage &AddLine(unsigned int lineNumber, bool hasBeenExecuted);
 		void UpdateLine(unsigned int lineNumber, bool hasBeenExecuted);
 
 		const boost::filesystem::path& GetPath() const;

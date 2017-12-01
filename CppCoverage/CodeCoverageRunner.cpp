@@ -212,11 +212,15 @@ namespace CppCoverage
         if (!executedAddressManager_->RegisterAddress(location, oldInstruction))
             breakpoint_->RemoveBreakPoint(location.address_, oldInstruction);
     }
-    void CodeCoverageRunner::OnNewConditional(const SourceCodeLocation& location, const Address &branchAddress)
+    void CodeCoverageRunner::OnNewConditional(const SourceCodeLocation& location, const Address &trueBranchAddress, const Address &falseBranchAddress)
     {
-        auto oldInstruction = breakpoint_->SetBreakPointAt(branchAddress);
-        if (!executedAddressManager_->RegisterBranchAddress(location, branchAddress, oldInstruction))
-            breakpoint_->RemoveBreakPoint(branchAddress, oldInstruction);
+        auto oldInstruction1 = breakpoint_->SetBreakPointAt(trueBranchAddress);
+        if (!executedAddressManager_->RegisterBranchAddress(location, trueBranchAddress, oldInstruction1))
+            breakpoint_->RemoveBreakPoint(trueBranchAddress, oldInstruction1);
+        
+        auto oldInstruction2 = breakpoint_->SetBreakPointAt(falseBranchAddress);
+        if (!executedAddressManager_->RegisterBranchAddress(location, falseBranchAddress, oldInstruction2))
+            breakpoint_->RemoveBreakPoint(falseBranchAddress, oldInstruction2);
     }
 	
 	//-------------------------------------------------------------------------

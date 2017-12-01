@@ -32,7 +32,7 @@ namespace CppCoverage
 		
 		unsigned int GetLineNumber() const;
 		bool HasBeenExecuted() const;
-
+        void SetHasBeenExecuted(bool hasBeenExecuted) { hasBeenExecuted_ = hasBeenExecuted; }
         BranchCoverage& AddBranch(const unsigned int branchNumber, bool hasBeenExcuted);
         const T_BranchCoverageCollection & GetBranches() const;
 		

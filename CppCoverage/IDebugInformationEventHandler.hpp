@@ -34,7 +34,7 @@ namespace CppCoverage
         virtual void OnNewClass(const std::wstring &className) = 0;
         virtual void OnNewFunction(const std::wstring &fileName, const std::wstring &className, const std::wstring &functionName) = 0;
 		virtual void OnNewLine(const SourceCodeLocation &) = 0;
-        virtual void OnNewConditional(const SourceCodeLocation&, const Address &branchAddress) = 0;
+        virtual void OnNewConditional(const SourceCodeLocation&, const Address &trueBranchAddress, const Address &falseBranchAddress) = 0;
 	private:
 		IDebugInformationEventHandler(const IDebugInformationEventHandler&) = delete;
 		IDebugInformationEventHandler& operator=(const IDebugInformationEventHandler&) = delete;

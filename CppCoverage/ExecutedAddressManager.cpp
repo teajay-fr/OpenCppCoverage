@@ -113,7 +113,7 @@ namespace CppCoverage
         auto& classContext = file.classes_[location.className_];
         auto& function = classContext.methods_[location.functionName_];
         auto& currentLine = file.lines_[location.lineNumber_];
-        function.lines_.emplace(std::make_pair(location.lineNumber_, ExecutedAddressManager::Method::ConditionalsContainer{}));
+        auto functionLine = function.lines_.emplace(std::make_pair(location.lineNumber_, ExecutedAddressManager::Method::ConditionalsContainer{}));
 		LOG_TRACE << "RegisterAddress: " << location.address_ << " for " << location.fileName_ << ":" << location.lineNumber_;
 		// Different {filename, line} can have the same address.
 		// Same {filename, line} can have several addresses.		
@@ -126,8 +126,9 @@ namespace CppCoverage
 			keepBreakpoint = true;
 		}
 		
-		auto& line = itAddress->second;
-		line.hasBeenExecutedCollection_.push_back(&currentLine);
+		//auto& line = itAddress->second;
+        itAddress->second.hasBeenExecutedCollection_.push_back(&file.lines_[location.lineNumber_]);
+        functionLine.first->second.push_back(false);
         return keepBreakpoint;
 	}
     bool ExecutedAddressManager::RegisterBranchAddress(        
@@ -208,14 +209,42 @@ namespace CppCoverage
 				const File& fileData = file.second;
 
 				auto& fileCoverage = moduleCoverage.AddFile(name);
+                for (const auto& classInFile : fileData.classes_)
+                {
+                    for (const auto& method : classInFile.second.methods_)
+                    {
+                        for (const auto &line : method.second.lines_)
+                        {
+                            auto lineNumber = line.first;
+                            if (!line.second.empty())
+                            {
+                                bool hasLineBeenExecuted = line.second.front();
 
-				for (const auto& pair : fileData.lines_)
+                                auto &coverageLine = fileCoverage.AddLine(lineNumber, false);
+                                if (line.second.size() > 1)
+                                {
+                                    bool hasLineBeenExecuted = false;
+                                    int conditionNumber = 0;
+                                    for (auto condition : line.second) {
+                                        coverageLine.AddBranch(conditionNumber, condition);
+                                    }
+                                }
+                                else
+                                {
+                                    coverageLine.SetHasBeenExecuted(line.second.front());
+                                }
+                            }
+                        }
+                    }
+                    
+                }
+				/*for (const auto& pair : fileData.lines_)
 				{
 					auto lineNumber = pair.first;
 					bool hasLineBeenExecuted = pair.second;
 					
 					fileCoverage.AddLine(lineNumber, hasLineBeenExecuted);
-				}
+				}*/
 			}			
 		}
 
