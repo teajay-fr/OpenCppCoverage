@@ -33,13 +33,16 @@ namespace CppCoverage
 	}
 
 	//-------------------------------------------------------------------------
-	FileCoverage& ModuleCoverage::AddFile(const boost::filesystem::path& filePath)
-	{
-		files_.push_back(std::unique_ptr<FileCoverage>(new FileCoverage(filePath)));
 
-		return *files_.back();
-	}
+    ClassCoverage& ModuleCoverage::AddClass(const boost::filesystem::path& filename, const std::string& classname)
+    {
+        if( )
+        auto fileItr = files_.find(filename);
+        if (fileItr != files_.end())
+        {
 
+        }
+    }
 	//-------------------------------------------------------------------------
 	const boost::filesystem::path& ModuleCoverage::GetPath() const
 	{

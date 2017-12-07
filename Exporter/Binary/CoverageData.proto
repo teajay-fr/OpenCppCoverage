@@ -15,16 +15,28 @@ message LineCoverage
     repeated BranchCoverage condionals = 3; 
 }
 
+message MethodCoverage
+{
+    required string name = 1;
+    repeated LineCoverage lines = 2;
+}
+
+message ClassCoverage
+{
+    required string name = 1;
+    repeated MethodCoverage methods = 2;
+}
+
 message FileCoverage
-{	
-	required string path = 1;									
-	repeated LineCoverage lines = 2;
+{
+    required string name = 1;
+    repeated ClassCoverage classes = 2;
 }
 
 message ModuleCoverage
 {	
 	required string path = 1;			
-	repeated FileCoverage files = 2;
+	repeated FileCoverage classes = 2;
 }
 
 message CoverageData

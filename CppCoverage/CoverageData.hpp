@@ -33,11 +33,13 @@ namespace boost
 namespace CppCoverage
 {
 	class ModuleCoverage;
+	class FileCoverage;
 
 	class CPPCOVERAGE_DLL CoverageData
 	{
 	public:
 		typedef std::vector<std::unique_ptr<ModuleCoverage>> T_ModuleCoverageCollection;
+		typedef std::vector<std::shared_ptr<FileCoverage>> T_FileCoverageCollection;
 
 	public:
 		explicit CoverageData(const std::wstring& name, int exitCode);
@@ -46,11 +48,13 @@ namespace CppCoverage
 		CoverageData(CoverageData&&);			
 		CoverageData& operator=(CoverageData&&);
 		ModuleCoverage& AddModule(const boost::filesystem::path& name);
+        FileCoverage& AddFile(const boost::filesystem::path& name);
 		
 		void SetName(const std::wstring&);
 		void SetExitCode(int);
 
 		const T_ModuleCoverageCollection& GetModules() const;
+		const T_FileCoverageCollection& GetFiles() const;
 		const std::wstring& GetName() const;
 		int GetExitCode() const;
 
@@ -60,6 +64,7 @@ namespace CppCoverage
 
 	private:
 		T_ModuleCoverageCollection modules_;
+        T_FileCoverageCollection files_;
 		std::wstring name_;
 		int exitCode_;
 	};

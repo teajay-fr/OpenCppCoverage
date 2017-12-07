@@ -18,21 +18,30 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <boost/filesystem.hpp>
 #include "CppCoverageExport.hpp"
 
 namespace CppCoverage
 {
-    class LineConverage;
+    class LineCoverage;
 	class CPPCOVERAGE_DLL MethodCoverage
 	{
 	public:
-		MethodCoverage(const std::wstring &name);
+		MethodCoverage(const boost::filesystem::path& filePath, const std::wstring &name);
 		MethodCoverage(const MethodCoverage&) = default;
 		
 		std::wstring GetMethodName() const;
+        LineCoverage &AddLine(unsigned int lineNumber, bool hasBeenExecuted);
+        void UpdateLine(unsigned int lineNumber, bool hasBeenExecuted);
+
+        const boost::filesystem::path& GetPath() const;
+        const LineCoverage* operator[](unsigned int line) const;
+        std::vector<LineCoverage> GetLines() const;
 		
 	private:
+        boost::filesystem::path path_;
 		std::wstring methodName_;
+        std::map<unsigned int, LineCoverage> lines_;
 	};
 }
 

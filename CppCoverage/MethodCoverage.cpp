@@ -16,19 +16,70 @@
 
 #include "stdafx.h"
 #include "MethodCoverage.hpp"
+#include "LineCoverage.hpp"
+#include "CppCoverageException.hpp"
 
 namespace CppCoverage
 {
 	//-------------------------------------------------------------------------
-	MethodCoverage::MethodCoverage(const std::wstring &methodName)
-		: methodName_(methodName)
+	MethodCoverage::MethodCoverage(const boost::filesystem::path& filePath, const std::wstring &methodName)
+		: path_(filePath)
+        , methodName_(methodName)
 	{
 	}
 		
-	//-------------------------------------------------------------------------
-	std::wstring MethodCoverage::GetMethodName() const
-	{
-		return methodName_;
-	}
-	
+    //-------------------------------------------------------------------------
+    std::wstring MethodCoverage::GetMethodName() const
+    {
+        return methodName_;
+    }
+
+    //-------------------------------------------------------------------------
+    LineCoverage &MethodCoverage::AddLine(unsigned int lineNumber, bool hasBeenExecuted) {
+        auto found = lines_.find(lineNumber);
+        if (found == lines_.end())
+        {
+            LineCoverage line{ lineNumber, hasBeenExecuted };
+            auto emplace_result = lines_.emplace(lineNumber, line);
+            found = emplace_result.first;
+        }
+        else
+            found->second.SetHasBeenExecuted(hasBeenExecuted);
+        return found->second;
+    }
+
+    //-------------------------------------------------------------------------
+    void MethodCoverage::UpdateLine(unsigned int lineNumber, bool hasBeenExecuted) {
+        auto found = lines_.find(lineNumber);
+        if (found == lines_.end())
+            THROW(L"Line " << lineNumber << L" does not exists and cannot be updated for " << path_.wstring());
+
+        found->second.SetHasBeenExecuted(hasBeenExecuted);
+    }
+
+    //-------------------------------------------------------------------------
+    const boost::filesystem::path& MethodCoverage::GetPath() const {
+        return path_;
+    }
+    //-------------------------------------------------------------------------
+    const LineCoverage* MethodCoverage::operator[](unsigned int line) const {
+        auto it = lines_.find(line);
+
+        if (it == lines_.end())
+            return nullptr;
+
+        return &it->second;
+    }
+
+    //-------------------------------------------------------------------------
+    std::vector<LineCoverage> MethodCoverage::GetLines() const {
+        std::vector<LineCoverage> lines;
+
+        for (const auto& pair : lines_)
+            lines.push_back(pair.second);
+
+        return lines;
+    }
+
+
 }

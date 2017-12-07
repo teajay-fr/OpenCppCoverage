@@ -129,6 +129,7 @@ namespace CppCoverage
 		//auto& line = itAddress->second;
         itAddress->second.hasBeenExecutedCollection_.push_back(&file.lines_[location.lineNumber_]);
         functionLine.first->second.push_back(false);
+        itAddress->second.hasBeenExecutedCollection_.push_back(&functionLine.first->second.back());
         return keepBreakpoint;
 	}
     bool ExecutedAddressManager::RegisterBranchAddress(        
@@ -211,6 +212,7 @@ namespace CppCoverage
 				auto& fileCoverage = moduleCoverage.AddFile(name);
                 for (const auto& classInFile : fileData.classes_)
                 {
+                    auto &classCoverage = moduleCoverage.AddClass(classInFile.first, name);
                     for (const auto& method : classInFile.second.methods_)
                     {
                         for (const auto &line : method.second.lines_)
@@ -220,7 +222,7 @@ namespace CppCoverage
                             {
                                 bool hasLineBeenExecuted = line.second.front();
 
-                                auto &coverageLine = fileCoverage.AddLine(lineNumber, false);
+                                auto &coverageLine = fileCoverage.AddLine(lineNumber, hasLineBeenExecuted);
                                 if (line.second.size() > 1)
                                 {
                                     bool hasLineBeenExecuted = false;
@@ -233,6 +235,11 @@ namespace CppCoverage
                                 {
                                     coverageLine.SetHasBeenExecuted(line.second.front());
                                 }
+                            }
+                            else
+                            {
+                                auto lineExecuted = fileData.lines_.find(lineNumber);
+                                fileCoverage.AddLine(lineNumber, lineExecuted->second);
                             }
                         }
                     }

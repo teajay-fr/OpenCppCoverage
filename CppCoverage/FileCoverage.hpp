@@ -25,6 +25,7 @@
 
 namespace CppCoverage
 {
+    class ClassCoverage;
 	class CPPCOVERAGE_DLL FileCoverage
 	{
 	public:

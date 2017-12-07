@@ -18,6 +18,7 @@
 #include "CoverageData.hpp"
 
 #include "ModuleCoverage.hpp"
+#include "FileCoverage.hpp"
 
 namespace CppCoverage
 {
@@ -59,6 +60,13 @@ namespace CppCoverage
 		return *modules_.back();
 	}
 
+    //-------------------------------------------------------------------------
+    FileCoverage& CoverageData::AddFile(const boost::filesystem::path& path)
+    {
+        files_.push_back(std::unique_ptr<FileCoverage>(new FileCoverage(path)));
+
+        return *files_.back();
+    }
 	//-------------------------------------------------------------------------	
 	void CoverageData::SetName(const std::wstring& name)
 	{
@@ -76,6 +84,12 @@ namespace CppCoverage
 	{
 		return modules_;
 	}
+
+    //-------------------------------------------------------------------------
+    const CoverageData::T_FileCoverageCollection& CoverageData::GetFiles() const
+    {
+        return files_;
+    }
 	
 	//-------------------------------------------------------------------------	
 	const std::wstring& CoverageData::GetName() const
